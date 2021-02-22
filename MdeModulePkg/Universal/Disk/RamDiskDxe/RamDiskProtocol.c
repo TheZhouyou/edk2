@@ -17,8 +17,8 @@ RAM_DISK_PRIVATE_DATA mRamDiskPrivateDataTemplate = {
 
 MEDIA_RAM_DISK_DEVICE_PATH  mRamDiskDeviceNodeTemplate = {
   {
-    MEDIA_DEVICE_PATH,
-    MEDIA_RAM_DISK_DP,
+    HARDWARE_DEVICE_PATH,
+    HW_VENDOR_DP,
     {
       (UINT8) (sizeof (MEDIA_RAM_DISK_DEVICE_PATH)),
       (UINT8) ((sizeof (MEDIA_RAM_DISK_DEVICE_PATH)) >> 8)
@@ -608,8 +608,7 @@ RamDiskRegister (
   //
   // Add check to prevent data read across the memory boundary
   //
-  if ((RamDiskSize > MAX_UINTN) ||
-      (RamDiskBase > MAX_UINTN - RamDiskSize + 1)) {
+  if (RamDiskBase + RamDiskSize > ((UINTN) -1) - RAM_DISK_BLOCK_SIZE + 1) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -663,7 +662,7 @@ RamDiskRegister (
   if (!IsListEmpty(&RegisteredRamDisks)) {
     DevicePathSize = GetDevicePathSize (PrivateData->DevicePath);
 
-    BASE_LIST_FOR_EACH (Entry, &RegisteredRamDisks) {
+    EFI_LIST_FOR_EACH (Entry, &RegisteredRamDisks) {
       RegisteredPrivateData = RAM_DISK_PRIVATE_FROM_THIS (Entry);
       if (DevicePathSize == GetDevicePathSize (RegisteredPrivateData->DevicePath)) {
         //
@@ -798,7 +797,7 @@ RamDiskUnregister (
   EndingAddr     = ReadUnaligned64 ((UINT64 *) &(RamDiskDevNode->EndingAddr[0]));
 
   if (!IsListEmpty(&RegisteredRamDisks)) {
-    BASE_LIST_FOR_EACH_SAFE (Entry, NextEntry, &RegisteredRamDisks) {
+    EFI_LIST_FOR_EACH_SAFE (Entry, NextEntry, &RegisteredRamDisks) {
       PrivateData = RAM_DISK_PRIVATE_FROM_THIS (Entry);
 
       //

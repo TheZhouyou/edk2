@@ -166,7 +166,7 @@ UnregisterAllRamDisks (
   RAM_DISK_PRIVATE_DATA           *PrivateData;
 
   if (!IsListEmpty(&RegisteredRamDisks)) {
-    BASE_LIST_FOR_EACH_SAFE (Entry, NextEntry, &RegisteredRamDisks) {
+    EFI_LIST_FOR_EACH_SAFE (Entry, NextEntry, &RegisteredRamDisks) {
       PrivateData = RAM_DISK_PRIVATE_FROM_THIS (Entry);
 
       gBS->UninstallMultipleProtocolInterfaces (
@@ -271,8 +271,6 @@ RamDiskRouteConfig (
   if (Configuration == NULL || Progress == NULL) {
     return EFI_INVALID_PARAMETER;
   }
-
-  *Progress = Configuration;
 
   return EFI_NOT_FOUND;
 }
@@ -508,7 +506,7 @@ UpdateMainForm (
   EndLabel->Number       = MAIN_LABEL_LIST_END;
 
   Index = 0;
-  BASE_LIST_FOR_EACH (Entry, &RegisteredRamDisks) {
+  EFI_LIST_FOR_EACH (Entry, &RegisteredRamDisks) {
     PrivateData                  = RAM_DISK_PRIVATE_FROM_THIS (Entry);
     PrivateData->CheckBoxId      = (EFI_QUESTION_ID)
                                    (MAIN_CHECKBOX_QUESTION_ID_START + Index);
@@ -651,7 +649,7 @@ RamDiskCallback (
         //
         // Open the file.
         //
-        Status = EfiOpenFileByDevicePath (
+        Status = OpenFileByDevicePath (
                    &FileDevPath,
                    &FileHandle,
                    EFI_FILE_MODE_READ,
@@ -690,7 +688,7 @@ RamDiskCallback (
       //
       // Remove the selected RAM disks
       //
-      BASE_LIST_FOR_EACH_SAFE (Entry, NextEntry, &RegisteredRamDisks) {
+      EFI_LIST_FOR_EACH_SAFE (Entry, NextEntry, &RegisteredRamDisks) {
         PrivateData = RAM_DISK_PRIVATE_FROM_THIS (Entry);
         if (PrivateData->CheckBoxChecked) {
           RamDiskUnregister (
@@ -743,7 +741,7 @@ RamDiskCallback (
       //
       if ((QuestionId >= MAIN_CHECKBOX_QUESTION_ID_START) &&
           (QuestionId < CREATE_RAW_RAM_DISK_FORM_ID)) {
-        BASE_LIST_FOR_EACH (Entry, &RegisteredRamDisks) {
+        EFI_LIST_FOR_EACH (Entry, &RegisteredRamDisks) {
           PrivateData = RAM_DISK_PRIVATE_FROM_THIS (Entry);
           if (PrivateData->CheckBoxId == QuestionId) {
             PrivateData->CheckBoxChecked = (BOOLEAN) (Value->u8 != 0);

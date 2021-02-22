@@ -48,7 +48,6 @@ RamDiskInitBlockIo (
   EFI_BLOCK_IO_PROTOCOL           *BlockIo;
   EFI_BLOCK_IO2_PROTOCOL          *BlockIo2;
   EFI_BLOCK_IO_MEDIA              *Media;
-  UINT32                          Remainder;
 
   BlockIo  = &PrivateData->BlockIo;
   BlockIo2 = &PrivateData->BlockIo2;
@@ -59,23 +58,16 @@ RamDiskInitBlockIo (
 
   BlockIo->Media          = Media;
   BlockIo2->Media         = Media;
-  Media->RemovableMedia   = FALSE;
+  Media->RemovableMedia   = FALSE;				
   Media->MediaPresent     = TRUE;
   Media->LogicalPartition = FALSE;
-  Media->ReadOnly         = FALSE;
+  Media->ReadOnly         = TRUE;
   Media->WriteCaching     = FALSE;
-
-  for (Media->BlockSize = RAM_DISK_DEFAULT_BLOCK_SIZE;
-       Media->BlockSize >= 1;
-       Media->BlockSize = Media->BlockSize >> 1) {
-    Media->LastBlock = DivU64x32Remainder (PrivateData->Size, Media->BlockSize, &Remainder) - 1;
-    if (Remainder == 0) {
-      break;
-    }
-  }
-  ASSERT (Media->BlockSize != 0);
-
-  return;
+  Media->BlockSize        = RAM_DISK_BLOCK_SIZE;
+  Media->LastBlock        = DivU64x32 (
+                              PrivateData->Size + RAM_DISK_BLOCK_SIZE - 1,
+                              RAM_DISK_BLOCK_SIZE
+                              ) - 1;
 }
 
 
@@ -139,18 +131,18 @@ RamDiskBlkIoReadBlocks (
   RAM_DISK_PRIVATE_DATA           *PrivateData;
   UINTN                           NumberOfBlocks;
 
-  PrivateData = RAM_DISK_PRIVATE_FROM_BLKIO (This);
-
-  if (MediaId != PrivateData->Media.MediaId) {
-    return EFI_MEDIA_CHANGED;
-  }
-
   if (Buffer == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
   if (BufferSize == 0) {
     return EFI_SUCCESS;
+  }
+
+  PrivateData = RAM_DISK_PRIVATE_FROM_BLKIO (This);
+
+  if (MediaId != PrivateData->Media.MediaId) {
+    return EFI_MEDIA_CHANGED;
   }
 
   if ((BufferSize % PrivateData->Media.BlockSize) != 0) {
@@ -214,6 +206,14 @@ RamDiskBlkIoWriteBlocks (
   RAM_DISK_PRIVATE_DATA           *PrivateData;
   UINTN                           NumberOfBlocks;
 
+  if (Buffer == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (BufferSize == 0) {
+    return EFI_SUCCESS;
+  }
+
   PrivateData = RAM_DISK_PRIVATE_FROM_BLKIO (This);
 
   if (MediaId != PrivateData->Media.MediaId) {
@@ -222,14 +222,6 @@ RamDiskBlkIoWriteBlocks (
 
   if (TRUE == PrivateData->Media.ReadOnly) {
     return EFI_WRITE_PROTECTED;
-  }
-
-  if (Buffer == NULL) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (BufferSize == 0) {
-    return EFI_SUCCESS;
   }
 
   if ((BufferSize % PrivateData->Media.BlockSize) != 0) {
